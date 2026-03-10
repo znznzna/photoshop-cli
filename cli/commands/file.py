@@ -73,6 +73,7 @@ def file_list(ctx):
     """List all open Photoshop documents"""
     fmt = ctx.obj.get("output", "text") if ctx.obj else "text"
     timeout = ctx.obj.get("timeout", 30.0) if ctx.obj else 30.0
+    fields = ctx.obj.get("fields") if ctx.obj else None
 
     async def _run():
         client = PhotoshopClient()
@@ -80,7 +81,7 @@ def file_list(ctx):
             await client.start()
             docs = await client.file_list(timeout=timeout)
             data = [doc.model_dump() for doc in docs]
-            click.echo(OutputFormatter.format(data, fmt))
+            click.echo(OutputFormatter.format(data, fmt, fields=fields))
         except Exception as e:
             _handle_client_error(ctx, e, fmt)
         finally:
@@ -96,13 +97,14 @@ def file_info(ctx, doc_id: int):
     """Get info for a specific document"""
     fmt = ctx.obj.get("output", "text") if ctx.obj else "text"
     timeout = ctx.obj.get("timeout", 30.0) if ctx.obj else 30.0
+    fields = ctx.obj.get("fields") if ctx.obj else None
 
     async def _run():
         client = PhotoshopClient()
         try:
             await client.start()
             doc = await client.file_info(doc_id=doc_id, timeout=timeout)
-            click.echo(OutputFormatter.format(doc.model_dump(), fmt))
+            click.echo(OutputFormatter.format(doc.model_dump(), fmt, fields=fields))
         except Exception as e:
             _handle_client_error(ctx, e, fmt)
         finally:
@@ -118,6 +120,7 @@ def file_open(ctx, path: str):
     """Open a PSD file in Photoshop"""
     fmt = ctx.obj.get("output", "text") if ctx.obj else "text"
     timeout = ctx.obj.get("timeout", 30.0) if ctx.obj else 30.0
+    fields = ctx.obj.get("fields") if ctx.obj else None
 
     # ローカルバリデーション（Photoshop に送信する前に検証）
     try:
@@ -131,12 +134,25 @@ def file_open(ctx, path: str):
         ctx.exit(4)
         return
 
+    dry_run = ctx.obj.get("dry_run", False) if ctx.obj else False
+
+    if dry_run:
+        dry_run_output = {
+            "dry_run": True,
+            "command": "file.open",
+            "params": {"path": path},
+            "timeout": timeout,
+            "message": "Validation passed. This command would open the file in Photoshop.",
+        }
+        click.echo(OutputFormatter.format(dry_run_output, fmt, fields=fields))
+        return
+
     async def _run():
         client = PhotoshopClient()
         try:
             await client.start()
             result = await client.file_open(path=path, timeout=timeout)
-            click.echo(OutputFormatter.format(result, fmt))
+            click.echo(OutputFormatter.format(result, fmt, fields=fields))
         except Exception as e:
             _handle_client_error(ctx, e, fmt)
         finally:
@@ -153,13 +169,27 @@ def file_close(ctx, doc_id: int, save: bool):
     """Close a document"""
     fmt = ctx.obj.get("output", "text") if ctx.obj else "text"
     timeout = ctx.obj.get("timeout", 30.0) if ctx.obj else 30.0
+    fields = ctx.obj.get("fields") if ctx.obj else None
+
+    dry_run = ctx.obj.get("dry_run", False) if ctx.obj else False
+
+    if dry_run:
+        dry_run_output = {
+            "dry_run": True,
+            "command": "file.close",
+            "params": {"doc_id": doc_id, "save": save},
+            "timeout": timeout,
+            "message": f"Validation passed. This command would close document {doc_id}.",
+        }
+        click.echo(OutputFormatter.format(dry_run_output, fmt, fields=fields))
+        return
 
     async def _run():
         client = PhotoshopClient()
         try:
             await client.start()
             result = await client.file_close(doc_id=doc_id, save=save, timeout=timeout)
-            click.echo(OutputFormatter.format(result, fmt))
+            click.echo(OutputFormatter.format(result, fmt, fields=fields))
         except Exception as e:
             _handle_client_error(ctx, e, fmt)
         finally:
@@ -175,13 +205,27 @@ def file_save(ctx, doc_id: int):
     """Save a document"""
     fmt = ctx.obj.get("output", "text") if ctx.obj else "text"
     timeout = ctx.obj.get("timeout", 30.0) if ctx.obj else 30.0
+    fields = ctx.obj.get("fields") if ctx.obj else None
+
+    dry_run = ctx.obj.get("dry_run", False) if ctx.obj else False
+
+    if dry_run:
+        dry_run_output = {
+            "dry_run": True,
+            "command": "file.save",
+            "params": {"doc_id": doc_id},
+            "timeout": timeout,
+            "message": f"Validation passed. This command would save document {doc_id}.",
+        }
+        click.echo(OutputFormatter.format(dry_run_output, fmt, fields=fields))
+        return
 
     async def _run():
         client = PhotoshopClient()
         try:
             await client.start()
             result = await client.file_save(doc_id=doc_id, timeout=timeout)
-            click.echo(OutputFormatter.format(result, fmt))
+            click.echo(OutputFormatter.format(result, fmt, fields=fields))
         except Exception as e:
             _handle_client_error(ctx, e, fmt)
         finally:
