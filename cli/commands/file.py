@@ -11,6 +11,7 @@ from photoshop_sdk.exceptions import (
     ConnectionError as PSConnectionError,
     PhotoshopSDKError,
     TimeoutError as PSTimeoutError,
+    ValidationError as PSValidationError,
 )
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,13 @@ def _run_async(coro):
 
 def _handle_client_error(ctx, e: Exception, fmt: str) -> None:
     """共通エラーハンドリング（exit code 付き）"""
-    if isinstance(e, PSConnectionError):
+    if isinstance(e, PSValidationError):
+        click.echo(
+            OutputFormatter.format_error(str(e), fmt, code="VALIDATION_ERROR"),
+            err=True,
+        )
+        ctx.exit(4)
+    elif isinstance(e, PSConnectionError):
         click.echo(
             OutputFormatter.format_error(str(e), fmt, code="CONNECTION_ERROR"),
             err=True,

@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, patch
 from click.testing import CliRunner
 
 from cli.main import cli
-from photoshop_sdk.exceptions import ConnectionError as PSConnectionError
+from photoshop_sdk.exceptions import ConnectionError as PSConnectionError, ValidationError as PSValidationError
 from photoshop_sdk.schema import DocumentInfo
 
 # テスト用のモックドキュメント
@@ -125,3 +125,18 @@ def test_file_save_success():
         result = runner.invoke(cli, ["--output", "json", "file", "save", "--doc-id", "1"])
 
     assert result.exit_code == 0
+
+
+def test_handle_validation_error():
+    """ValidationError が exit code 4 で処理される"""
+    runner = CliRunner()
+    mock_client = make_mock_client({
+        "file_list": PSValidationError("Invalid input", code="VALIDATION_ERROR"),
+    })
+
+    with patch("cli.commands.file.PhotoshopClient", return_value=mock_client):
+        result = runner.invoke(cli, ["--output", "json", "file", "list"])
+
+    assert result.exit_code == 4
+    error = json.loads(result.output)
+    assert error["error"]["code"] == "VALIDATION_ERROR"
