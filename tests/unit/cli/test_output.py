@@ -59,3 +59,23 @@ def test_format_json_truncates_long_strings():
     parsed = json.loads(result)
     assert len(parsed["big"]) < 60000
     assert "truncated" in parsed["big"]
+
+
+def test_format_error_with_details_json():
+    """format_error に details を渡すと JSON 出力に含まれる"""
+    result = OutputFormatter.format_error(
+        "Validation failed",
+        "json",
+        code="VALIDATION_ERROR",
+        details={"field": "path", "rule": "non_empty"},
+    )
+    data = json.loads(result)
+    assert data["error"]["details"]["field"] == "path"
+    assert data["error"]["details"]["rule"] == "non_empty"
+
+
+def test_format_error_without_details_json():
+    """details なしの場合は details キーが含まれない"""
+    result = OutputFormatter.format_error("Some error", "json", code="ERROR")
+    data = json.loads(result)
+    assert "details" not in data["error"]

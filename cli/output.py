@@ -93,6 +93,7 @@ class OutputFormatter:
         code: str = "ERROR",
         command: str | None = None,
         suggestions: list[str] | None = None,
+        details: dict[str, Any] | None = None,
     ) -> str:
         if mode == "json":
             error_obj: dict[str, Any] = {
@@ -103,5 +104,7 @@ class OutputFormatter:
                 error_obj["command"] = command
             if suggestions:
                 error_obj["suggestions"] = suggestions
+            if details:
+                error_obj["details"] = details
             return json.dumps({"error": error_obj})
         return f"Error: {message}"
