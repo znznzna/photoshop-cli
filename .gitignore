@@ -17,5 +17,4 @@ uxp-plugin/dist/
 
 # Release時にユーザーが関係ないもの
 docs/plans/
-plugin/
 HANDOVER*.md
