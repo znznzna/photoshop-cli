@@ -116,6 +116,20 @@ psd --output json file close --doc-id <ID> --save    # Save and close
 psd --output json file save --doc-id <ID>            # Save document
 ```
 
+### System Operations
+
+```bash
+psd --output json system ping                        # Check connection to Photoshop
+```
+
+### Schema Introspection
+
+```bash
+psd --output json schema                             # List all available commands
+psd --output json schema file.open                   # Show JSON schema for file.open
+psd --output json schema system.ping                 # Show JSON schema for system.ping
+```
+
 ### Global Options
 
 | Option | Short | Description |

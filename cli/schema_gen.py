@@ -33,6 +33,12 @@ _RESPONSE_SCHEMAS: dict[str, Any] = {
             "saved": {"type": "boolean"},
         },
     },
+    "system.ping": {
+        "type": "object",
+        "properties": {
+            "status": {"type": "string", "description": "Connection status"},
+        },
+    },
 }
 
 # Click 型 → JSON Schema 型マッピング
