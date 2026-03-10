@@ -13,6 +13,7 @@ from photoshop_sdk.exceptions import (
     TimeoutError as PSTimeoutError,
     ValidationError as PSValidationError,
 )
+from photoshop_sdk.validators import validate_file_path
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +118,18 @@ def file_open(ctx, path: str):
     """Open a PSD file in Photoshop"""
     fmt = ctx.obj.get("output", "text") if ctx.obj else "text"
     timeout = ctx.obj.get("timeout", 30.0) if ctx.obj else 30.0
+
+    # ローカルバリデーション（Photoshop に送信する前に検証）
+    try:
+        resolved = validate_file_path(path)
+        path = str(resolved)
+    except PSValidationError as e:
+        click.echo(
+            OutputFormatter.format_error(str(e), fmt, code=e.code or "VALIDATION_ERROR"),
+            err=True,
+        )
+        ctx.exit(4)
+        return
 
     async def _run():
         client = PhotoshopClient()
