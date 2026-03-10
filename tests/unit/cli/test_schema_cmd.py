@@ -1,5 +1,9 @@
 """psd schema のユニットテスト"""
 
+import json
+
+from click.testing import CliRunner
+
 from cli.main import cli
 from cli.schema_gen import generate_command_schema, list_available_commands
 
@@ -53,3 +57,34 @@ class TestSchemaGen:
         assert "doc_id" in params["properties"]
         assert params["properties"]["doc_id"]["type"] == "integer"
         assert "doc_id" in params["required"]
+
+
+class TestSchemaCommand:
+    """psd schema CLI コマンドの統合テスト"""
+
+    def test_schema_list_commands(self):
+        """psd schema でコマンド一覧が返される"""
+        runner = CliRunner()
+        result = runner.invoke(cli, ["-o", "json", "schema"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert "available_commands" in data
+        commands = data["available_commands"]
+        assert "file.list" in commands
+        assert "file.open" in commands
+
+    def test_schema_file_open_returns_schema(self):
+        """psd schema file.open でスキーマ JSON が返される"""
+        runner = CliRunner()
+        result = runner.invoke(cli, ["-o", "json", "schema", "file.open"])
+        assert result.exit_code == 0
+        schema = json.loads(result.output)
+        assert schema["title"] == "file.open"
+        assert "params" in schema["properties"]
+
+    def test_schema_unknown_command_returns_error(self):
+        """psd schema unknown.cmd でエラーが返される"""
+        runner = CliRunner()
+        result = runner.invoke(cli, ["-o", "json", "schema", "unknown.cmd"])
+        # exit_code が非ゼロであることを確認
+        assert result.exit_code == 1

@@ -103,7 +103,12 @@ def generate_command_schema(cmd_path: str, cli_group: click.Group) -> dict[str, 
             param_info["enum"] = enum_values
 
         if param.default is not None and param.default != ():
-            param_info["default"] = param.default
+            try:
+                import json as _json
+                _json.dumps(param.default)
+                param_info["default"] = param.default
+            except (TypeError, ValueError):
+                pass
 
         if param.required:
             required_params.append(param.name)
