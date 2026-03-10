@@ -116,7 +116,7 @@ class TestConnectionManagerExecute:
 
     @patch("mcp_server.connection.PhotoshopClient")
     async def test_connection_error_response(self, mock_client_cls):
-        """ConnectionError は retryable=True の dict に変換される"""
+        """ConnectionError は retryable=True の dict に変換され、クライアントがクリーンアップされる"""
         from photoshop_sdk.exceptions import ConnectionError as PSConnectionError
 
         mock_client = AsyncMock()
@@ -130,6 +130,7 @@ class TestConnectionManagerExecute:
         assert result["error"]["category"] == "connection"
         assert result["error"]["retryable"] is True
         assert mgr._state == ConnectionState.DISCONNECTED
+        assert mgr._client is None  # P1: クライアントがクリーンアップされている
 
     @patch("mcp_server.connection.PhotoshopClient")
     async def test_timeout_error_response(self, mock_client_cls):
@@ -213,3 +214,34 @@ class TestConnectionManagerDisconnect:
         mgr = ConnectionManager()
         await mgr.disconnect()
         assert mgr._state == ConnectionState.DISCONNECTED
+
+
+class TestConnectionManagerUnexpectedError:
+    @patch("mcp_server.connection.PhotoshopClient")
+    async def test_unexpected_error_returns_internal_error(self, mock_client_cls):
+        """非SDK例外は INTERNAL_ERROR の dict に変換される"""
+        mock_client = AsyncMock()
+        mock_client.execute_command = AsyncMock(side_effect=RuntimeError("Unexpected IO failure"))
+        mock_client_cls.return_value = mock_client
+
+        mgr = ConnectionManager()
+        result = await mgr.execute("file.list")
+
+        assert result["success"] is False
+        assert result["error"]["code"] == "INTERNAL_ERROR"
+        assert result["error"]["category"] == "internal"
+        assert result["error"]["retryable"] is False
+
+    @patch("mcp_server.connection.PhotoshopClient")
+    async def test_startup_error_returns_structured_response(self, mock_client_cls):
+        """起動時の非SDK例外も構造化レスポンスになる"""
+        mock_client = AsyncMock()
+        mock_client.start.side_effect = OSError("Port already in use")
+        mock_client_cls.return_value = mock_client
+
+        mgr = ConnectionManager()
+        result = await mgr.execute("system.ping")
+
+        assert result["success"] is False
+        assert result["error"]["code"] == "INTERNAL_ERROR"
+        assert result["error"]["category"] == "internal"

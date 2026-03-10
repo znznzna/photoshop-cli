@@ -90,6 +90,7 @@ class ConnectionManager:
                 }
             except PSConnectionError as e:
                 self._state = ConnectionState.DISCONNECTED
+                self._client = None
                 return {
                     "success": False,
                     "error": {
@@ -127,6 +128,17 @@ class ConnectionManager:
                         "code": e.code or "SDK_ERROR",
                         "message": str(e),
                         "category": "sdk",
+                        "retryable": False,
+                    },
+                }
+            except Exception as e:
+                logger.exception("Unexpected error in ConnectionManager.execute()")
+                return {
+                    "success": False,
+                    "error": {
+                        "code": "INTERNAL_ERROR",
+                        "message": str(e),
+                        "category": "internal",
                         "retryable": False,
                     },
                 }
