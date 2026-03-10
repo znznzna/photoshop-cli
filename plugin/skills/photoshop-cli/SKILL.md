@@ -1,91 +1,19 @@
-# photoshop-cli Skill
+---
+name: photoshop-cli
+description: |
+  Control Adobe Photoshop via CLI (psd command) and MCP server.
+  Use when user asks to open, close, or save PSD files, list open documents,
+  get document info, or automate Photoshop workflows.
+  Triggers: "Photoshopで開いて", "PSDファイルを", "ドキュメント一覧",
+  "psd file", "photoshop操作", "レイヤー情報", "画像を保存".
+  Do NOT use for Lightroom (use lightroom-cli skill), Figma, or other design tools.
+---
+
+# photoshop-cli
 
 Adobe Photoshop を CLI/MCP 経由で制御するスキル。
 
-## 前提条件
-
-1. Photoshop が起動していること
-2. UXP Plugin（photoshop-cli-bridge）がインストール・アクティブであること
-3. Python SDK が起動していること（`psd` コマンドが使えること）
-
-## 接続フロー
-
-```
-Claude Code
-    ↓ psd file list
-CLI (psd)
-    ↓ WebSocket送信
-Python SDK (ResilientWSBridge) ← WS Server listening on port from /tmp/photoshop_ws_port.txt
-    ↑ WebSocket接続
-UXP Plugin (ws_client.ts) → Photoshop app API
-```
-
-## 利用可能コマンド
-
-### ファイル操作
-
-```bash
-# 開いているドキュメント一覧
-psd file list
-
-# ドキュメント情報取得
-psd file info --doc-id <ID>
-
-# ファイルを開く
-psd file open /path/to/file.psd
-
-# ドキュメントを閉じる
-psd file close --doc-id <ID>
-psd file close --doc-id <ID> --save  # 保存してから閉じる
-
-# ドキュメントを保存
-psd file save --doc-id <ID>
-```
-
-### 出力形式
-
-```bash
-# JSON 出力（デフォルト: non-TTY）
-psd --output json file list
-
-# テキスト出力
-psd --output text file list
-
-# テーブル出力
-psd --output table file list
-```
-
-### exit codes
-
-| Code | 意味 |
-|------|------|
-| 0 | 成功 |
-| 1 | 一般エラー |
-| 2 | 接続エラー（Photoshop未起動/プラグイン未接続） |
-| 3 | タイムアウト |
-| 4 | バリデーションエラー |
-
-## トラブルシューティング
-
-### "UXP Plugin is not connected" エラー
-
-1. Photoshop が起動しているか確認
-2. UXP Developer Tool でプラグインが Active になっているか確認
-3. `/tmp/photoshop_ws_port.txt` が存在するか確認: `cat /tmp/photoshop_ws_port.txt`
-4. `psd file list` を再実行
-
-### タイムアウトエラー
-
-- `psd --timeout 120 file open /large/file.psd` でタイムアウトを延長
-
-## 開発情報
-
-- リポジトリ: `/Users/motokiendo/dev/photoshop-cli/`
-- Python SDK: `photoshop_sdk/`
-- UXP Plugin: `uxp-plugin/src/`
-- テスト: `python -m pytest tests/unit/ -v`
-
-## エージェント不変条件（Agent Invariants）
+## CRITICAL: エージェント不変条件
 
 以下のルールは **必ず** 遵守すること。違反するとデータ損失やユーザーの信頼を損なう。
 
@@ -115,24 +43,20 @@ psd file list
 
 ### 3. `--fields` でコンテキストウィンドウを節約する
 
-必要なフィールドだけを取得すること。全フィールドを取得するとコンテキストウィンドウを浪費する。
+必要なフィールドだけを取得すること。
 
 ```bash
-# ドキュメント一覧から名前とIDだけ取得
 psd --output json --fields documentId,name file list
-
-# ドキュメントのサイズ情報だけ取得
 psd --output json --fields width,height,resolution file info --doc-id 1
 ```
 
 ### 4. `--dry-run` で事前検証する
 
 変更操作を実行する前に `--dry-run` で検証すること。
-バリデーションエラーを事前に検出し、不要な Photoshop 操作を防ぐ。
 
 ```bash
 # まず dry-run で検証
-psd --output json file open --dry-run /path/to/file.psd
+psd --dry-run --output json file open /path/to/file.psd
 
 # 成功を確認してから実行
 psd --output json file open /path/to/file.psd
@@ -156,9 +80,73 @@ exit code を確認し、適切に対処すること:
 ハルシネーションでパラメータを推測してはいけない。
 
 ```bash
-# file.open の引数を確認
-psd --output json schema file.open
+psd --output json schema file.open   # file.open の引数を確認
+psd --output json schema             # 全コマンド一覧
+```
 
-# 全コマンド一覧
-psd --output json schema
+## 前提条件
+
+1. Photoshop が起動していること
+2. UXP Plugin（photoshop-cli-bridge）がインストール・アクティブであること
+3. Python SDK が起動していること（`psd` コマンドが使えること）
+
+## 接続フロー
+
+```
+Claude Code
+    ↓ psd file list
+CLI (psd)
+    ↓ WebSocket送信
+Python SDK (ResilientWSBridge) ← WS Server listening on port from /tmp/photoshop_ws_port.txt
+    ↑ WebSocket接続
+UXP Plugin (ws_client.ts) → Photoshop app API
+```
+
+## コマンドリファレンス
+
+### ファイル操作
+
+```bash
+psd --output json file list                          # ドキュメント一覧
+psd --output json file info --doc-id <ID>            # ドキュメント情報
+psd --output json file open /path/to/file.psd        # ファイルを開く
+psd --output json file close --doc-id <ID>           # 閉じる
+psd --output json file close --doc-id <ID> --save    # 保存して閉じる
+psd --output json file save --doc-id <ID>            # 保存
+```
+
+### グローバルオプション
+
+| オプション | 短縮 | 説明 |
+|---|---|---|
+| `--output json\|text\|table` | `-o` | 出力形式（non-TTYデフォルト: json） |
+| `--fields f1,f2` | `-f` | 出力フィールド絞り込み |
+| `--dry-run` | | 検証のみ、実行しない |
+| `--timeout <秒>` | `-t` | コマンドタイムアウト |
+| `--verbose` | `-v` | デバッグログ出力 |
+
+### exit codes
+
+| Code | 意味 |
+|------|------|
+| 0 | 成功 |
+| 1 | 一般エラー |
+| 2 | 接続エラー（Photoshop未起動/プラグイン未接続） |
+| 3 | タイムアウト |
+| 4 | バリデーションエラー |
+
+## Troubleshooting / Error Handling
+
+### "UXP Plugin is not connected" error
+
+1. Photoshop が起動しているか確認
+2. UXP Developer Tool でプラグインが Active になっているか確認
+3. ポートファイルが存在するか確認: `cat /tmp/photoshop_ws_port.txt`
+4. `psd --output json file list` を再実行
+
+### Timeout error
+
+```bash
+# Example: extend timeout for large files
+psd --timeout 120 --output json file open /large/file.psd
 ```
