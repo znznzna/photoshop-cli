@@ -1,0 +1,15 @@
+{
+  "name": "photoshop-cli-uxp-bridge",
+  "version": "1.0.0",
+  "description": "UXP Plugin bridge for photoshop-cli",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/photoshop": "^24.0.0"
+  }
+}
