@@ -1,6 +1,5 @@
 """入力バリデーション純関数 -- CLI / MCP Server の両方から呼び出し可能"""
 
-import os
 import re
 from pathlib import Path
 
@@ -39,9 +38,9 @@ def validate_file_path(path: str) -> Path:
         )
 
     # 3. パストラバーサル
-    # resolve() 前の生パスで ".." を検出（resolve 後は消えるため）
-    normalized = os.path.normpath(path)
-    if ".." in normalized.split(os.sep):
+    # normpath 前の生パスで ".." を検出（normpath が折り畳むため）
+    raw_parts = Path(path).parts
+    if ".." in raw_parts:
         raise ValidationError(
             "File path must not contain path traversal sequences (..)",
             code="VALIDATION_ERROR",

@@ -76,6 +76,17 @@ class TestValidateFilePath:
         with pytest.raises(ValidationError, match="traversal"):
             validate_file_path("foo/../../bar")
 
+    def test_traversal_via_normpath_bypass(self, tmp_path):
+        """normpath がトラバーサルを折り畳むバイパスを検出"""
+        # subdir/../secret.psd は normpath で secret.psd に正規化されるが
+        # 生パスに .. が含まれるため拒否されるべき
+        target = tmp_path / "secret.psd"
+        target.write_text("dummy")
+        subdir = tmp_path / "subdir"
+        subdir.mkdir()
+        with pytest.raises(ValidationError, match="traversal"):
+            validate_file_path(str(subdir) + "/../secret.psd")
+
     def test_file_not_found_raises(self, tmp_path):
         """存在しないパス → ValidationError"""
         nonexistent = str(tmp_path / "nonexistent.psd")
