@@ -1,0 +1,21 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+*.log
+/tmp/photoshop_ws_port.txt
+node_modules/
+uxp-plugin/dist/
+
+# Release時にユーザーが関係ないもの
+docs/plans/
+plugin/
+HANDOVER*.md
