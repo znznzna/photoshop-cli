@@ -102,10 +102,12 @@ class ResilientWSBridge:
                     await self._heartbeat_task
                 except asyncio.CancelledError:
                     pass
-            self._connection = None
-            self._state = ConnectionState.WAITING_FOR_PLUGIN
-            self._reject_pending_requests("UXP Plugin disconnected")
-            logger.info("UXP Plugin connection closed, waiting for reconnection")
+            # 古いハンドラが新しい接続を破壊しないようガード
+            if self._connection is websocket:
+                self._connection = None
+                self._state = ConnectionState.WAITING_FOR_PLUGIN
+                self._reject_pending_requests("UXP Plugin disconnected")
+                logger.info("UXP Plugin connection closed, waiting for reconnection")
 
     def _reject_pending_requests(self, reason: str) -> None:
         """未解決の全リクエストを ConnectionError で reject する"""
