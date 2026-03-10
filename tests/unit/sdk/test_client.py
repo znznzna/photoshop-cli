@@ -1,16 +1,11 @@
-import asyncio
-import json
 from pathlib import Path
 
 import pytest
-import websockets
 
 from photoshop_sdk.client import PhotoshopClient
 from photoshop_sdk.exceptions import (
-    DocumentNotFoundError,
     ConnectionError as PSConnectionError,
 )
-from photoshop_sdk.schema import DocumentInfo
 
 
 @pytest.fixture
@@ -33,7 +28,7 @@ async def test_client_start_creates_port_file(tmp_path):
 
 async def test_client_context_manager(tmp_path):
     port_file = str(tmp_path / "ps_port.txt")
-    async with PhotoshopClient(port_file=port_file) as client:
+    async with PhotoshopClient(port_file=port_file) as _client:
         assert Path(port_file).exists()
     # stop後はポートファイルが消える
     assert not Path(port_file).exists()

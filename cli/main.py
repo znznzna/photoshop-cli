@@ -3,8 +3,6 @@ import os
 
 import click
 
-from cli.output import OutputFormatter
-
 
 def resolve_output_format(output: str | None) -> str:
     if output is not None:

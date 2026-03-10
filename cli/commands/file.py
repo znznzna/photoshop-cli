@@ -9,8 +9,8 @@ from cli.output import OutputFormatter
 from photoshop_sdk.client import PhotoshopClient
 from photoshop_sdk.exceptions import (
     ConnectionError as PSConnectionError,
-    TimeoutError as PSTimeoutError,
     PhotoshopSDKError,
+    TimeoutError as PSTimeoutError,
 )
 
 logger = logging.getLogger(__name__)
@@ -64,12 +64,13 @@ def file_cmd():
 def file_list(ctx):
     """List all open Photoshop documents"""
     fmt = ctx.obj.get("output", "text") if ctx.obj else "text"
+    timeout = ctx.obj.get("timeout", 30.0) if ctx.obj else 30.0
 
     async def _run():
         client = PhotoshopClient()
-        await client.start()
         try:
-            docs = await client.file_list()
+            await client.start()
+            docs = await client.file_list(timeout=timeout)
             data = [doc.model_dump() for doc in docs]
             click.echo(OutputFormatter.format(data, fmt))
         except Exception as e:
@@ -86,12 +87,13 @@ def file_list(ctx):
 def file_info(ctx, doc_id: int):
     """Get info for a specific document"""
     fmt = ctx.obj.get("output", "text") if ctx.obj else "text"
+    timeout = ctx.obj.get("timeout", 30.0) if ctx.obj else 30.0
 
     async def _run():
         client = PhotoshopClient()
-        await client.start()
         try:
-            doc = await client.file_info(doc_id=doc_id)
+            await client.start()
+            doc = await client.file_info(doc_id=doc_id, timeout=timeout)
             click.echo(OutputFormatter.format(doc.model_dump(), fmt))
         except Exception as e:
             _handle_client_error(ctx, e, fmt)
@@ -107,12 +109,13 @@ def file_info(ctx, doc_id: int):
 def file_open(ctx, path: str):
     """Open a PSD file in Photoshop"""
     fmt = ctx.obj.get("output", "text") if ctx.obj else "text"
+    timeout = ctx.obj.get("timeout", 30.0) if ctx.obj else 30.0
 
     async def _run():
         client = PhotoshopClient()
-        await client.start()
         try:
-            result = await client.file_open(path=path)
+            await client.start()
+            result = await client.file_open(path=path, timeout=timeout)
             click.echo(OutputFormatter.format(result, fmt))
         except Exception as e:
             _handle_client_error(ctx, e, fmt)
@@ -129,12 +132,13 @@ def file_open(ctx, path: str):
 def file_close(ctx, doc_id: int, save: bool):
     """Close a document"""
     fmt = ctx.obj.get("output", "text") if ctx.obj else "text"
+    timeout = ctx.obj.get("timeout", 30.0) if ctx.obj else 30.0
 
     async def _run():
         client = PhotoshopClient()
-        await client.start()
         try:
-            result = await client.file_close(doc_id=doc_id, save=save)
+            await client.start()
+            result = await client.file_close(doc_id=doc_id, save=save, timeout=timeout)
             click.echo(OutputFormatter.format(result, fmt))
         except Exception as e:
             _handle_client_error(ctx, e, fmt)
@@ -150,12 +154,13 @@ def file_close(ctx, doc_id: int, save: bool):
 def file_save(ctx, doc_id: int):
     """Save a document"""
     fmt = ctx.obj.get("output", "text") if ctx.obj else "text"
+    timeout = ctx.obj.get("timeout", 30.0) if ctx.obj else 30.0
 
     async def _run():
         client = PhotoshopClient()
-        await client.start()
         try:
-            result = await client.file_save(doc_id=doc_id)
+            await client.start()
+            result = await client.file_save(doc_id=doc_id, timeout=timeout)
             click.echo(OutputFormatter.format(result, fmt))
         except Exception as e:
             _handle_client_error(ctx, e, fmt)

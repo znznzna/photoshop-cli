@@ -1,7 +1,4 @@
-import os
 from pathlib import Path
-
-import pytest
 
 from photoshop_sdk.paths import get_port_file, get_ws_port_file
 

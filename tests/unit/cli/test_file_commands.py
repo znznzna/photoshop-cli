@@ -1,13 +1,11 @@
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
-import pytest
 from click.testing import CliRunner
 
 from cli.main import cli
 from photoshop_sdk.exceptions import ConnectionError as PSConnectionError
 from photoshop_sdk.schema import DocumentInfo
-
 
 # テスト用のモックドキュメント
 MOCK_DOC_1 = DocumentInfo(documentId=1, name="photo.psd", path="/Users/test/photo.psd", width=1920, height=1080)

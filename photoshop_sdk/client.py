@@ -3,7 +3,6 @@
 import logging
 from typing import Any, Dict, List, Optional
 
-from .exceptions import ERROR_CODE_MAP, PhotoshopSDKError
 from .schema import DocumentInfo
 from .ws_bridge import ResilientWSBridge
 
@@ -60,26 +59,26 @@ class PhotoshopClient:
 
     # ─── File 操作 API ────────────────────────────────────────────
 
-    async def file_open(self, path: str) -> Dict[str, Any]:
+    async def file_open(self, path: str, timeout: Optional[float] = None) -> Dict[str, Any]:
         """PSD ファイルを開く"""
-        return await self.execute_command("file.open", {"path": path})
+        return await self.execute_command("file.open", {"path": path}, timeout=timeout)
 
-    async def file_close(self, doc_id: int, save: bool = False) -> Dict[str, Any]:
+    async def file_close(self, doc_id: int, save: bool = False, timeout: Optional[float] = None) -> Dict[str, Any]:
         """ドキュメントを閉じる"""
-        return await self.execute_command("file.close", {"documentId": doc_id, "save": save})
+        return await self.execute_command("file.close", {"documentId": doc_id, "save": save}, timeout=timeout)
 
-    async def file_save(self, doc_id: int) -> Dict[str, Any]:
+    async def file_save(self, doc_id: int, timeout: Optional[float] = None) -> Dict[str, Any]:
         """ドキュメントを保存する"""
-        return await self.execute_command("file.save", {"documentId": doc_id})
+        return await self.execute_command("file.save", {"documentId": doc_id}, timeout=timeout)
 
-    async def file_info(self, doc_id: int) -> DocumentInfo:
+    async def file_info(self, doc_id: int, timeout: Optional[float] = None) -> DocumentInfo:
         """ドキュメント情報を取得する"""
-        result = await self.execute_command("file.info", {"documentId": doc_id})
+        result = await self.execute_command("file.info", {"documentId": doc_id}, timeout=timeout)
         return DocumentInfo(**result)
 
-    async def file_list(self) -> List[DocumentInfo]:
+    async def file_list(self, timeout: Optional[float] = None) -> List[DocumentInfo]:
         """開いているすべてのドキュメントを一覧表示する"""
-        result = await self.execute_command("file.list")
+        result = await self.execute_command("file.list", timeout=timeout)
         documents = result.get("documents", [])
         return [DocumentInfo(**doc) for doc in documents]
 

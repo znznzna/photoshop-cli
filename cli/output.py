@@ -63,10 +63,10 @@ class OutputFormatter:
     def _format_table(data: Any) -> str:
         if not isinstance(data, list) or not data:
             return OutputFormatter._format_text(data)
-        console = Console(file=StringIO(), force_terminal=False)
-        table = Table()
+        console = Console(file=StringIO(), force_terminal=False, width=120)
+        table = Table(show_lines=False, pad_edge=True)
         for key in data[0].keys():
-            table.add_column(key)
+            table.add_column(key, no_wrap=True, overflow="ellipsis")
         for row in data:
             table.add_row(*[str(v) for v in row.values()])
         console.print(table)

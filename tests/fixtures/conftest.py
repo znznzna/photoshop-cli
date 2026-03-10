@@ -1,4 +1,5 @@
 import asyncio
+
 import pytest_asyncio
 
 from photoshop_sdk.client import PhotoshopClient

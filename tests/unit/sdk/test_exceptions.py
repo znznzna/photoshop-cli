@@ -1,12 +1,11 @@
-import pytest
 
 from photoshop_sdk.exceptions import (
-    PhotoshopSDKError,
-    ConnectionError as PSConnectionError,
-    TimeoutError as PSTimeoutError,
-    DocumentNotFoundError,
-    ValidationError,
     ERROR_CODE_MAP,
+    ConnectionError as PSConnectionError,
+    DocumentNotFoundError,
+    PhotoshopSDKError,
+    TimeoutError as PSTimeoutError,
+    ValidationError,
 )
 
 

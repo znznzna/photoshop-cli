@@ -2,9 +2,9 @@ import pytest
 from pydantic import ValidationError as PydanticValidationError
 
 from photoshop_sdk.schema import (
+    DocumentInfo,
     PhotoshopCommand,
     PhotoshopResponse,
-    DocumentInfo,
 )
 
 

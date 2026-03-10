@@ -68,6 +68,15 @@ class ResilientWSBridge:
 
     async def _handle_connection(self, websocket: ServerConnection) -> None:
         """UXP Plugin からの接続ハンドラ"""
+        # stale接続のクリーンアップ: 既存接続があれば閉じる
+        if self._connection is not None:
+            logger.warning("Replacing stale connection with new one")
+            try:
+                await self._connection.close()
+            except Exception:
+                pass
+            self._reject_pending_requests("Connection replaced by new client")
+
         self._connection = websocket
         self._state = ConnectionState.CONNECTED
         logger.info("UXP Plugin connected")
@@ -95,7 +104,19 @@ class ResilientWSBridge:
                     pass
             self._connection = None
             self._state = ConnectionState.WAITING_FOR_PLUGIN
+            self._reject_pending_requests("UXP Plugin disconnected")
             logger.info("UXP Plugin connection closed, waiting for reconnection")
+
+    def _reject_pending_requests(self, reason: str) -> None:
+        """未解決の全リクエストを ConnectionError で reject する"""
+        from .exceptions import ConnectionError as PSConnectionError
+
+        pending = list(self._pending_requests.items())
+        self._pending_requests.clear()
+        for request_id, future in pending:
+            if not future.done():
+                future.set_exception(PSConnectionError(reason))
+            logger.debug(f"Rejected pending request {request_id}: {reason}")
 
     async def _handle_message(self, message: Dict[str, Any]) -> None:
         """UXP Plugin からのレスポンスを pending_request に解決する"""

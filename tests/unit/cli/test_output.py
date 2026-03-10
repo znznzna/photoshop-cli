@@ -1,7 +1,5 @@
 import json
 
-import pytest
-
 from cli.output import OutputFormatter
 
 

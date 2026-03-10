@@ -1,13 +1,12 @@
 import asyncio
 import json
-import tempfile
 from pathlib import Path
 
 import pytest
 import websockets
 
-from photoshop_sdk.ws_bridge import ResilientWSBridge, ConnectionState
 from photoshop_sdk.exceptions import ConnectionError as PSConnectionError, TimeoutError as PSTimeoutError
+from photoshop_sdk.ws_bridge import ConnectionState, ResilientWSBridge
 
 
 @pytest.fixture
@@ -101,7 +100,7 @@ async def test_send_command_timeout(running_bridge):
     port = int(Path(running_bridge._port_file).read_text().strip())
 
     async def unresponsive_plugin():
-        async with websockets.connect(f"ws://localhost:{port}") as ws:
+        async with websockets.connect(f"ws://localhost:{port}") as _ws:
             await asyncio.sleep(10.0)
 
     task = asyncio.create_task(unresponsive_plugin())
@@ -115,6 +114,45 @@ async def test_send_command_timeout(running_bridge):
         await task
     except (asyncio.CancelledError, Exception):
         pass
+
+
+async def test_pending_requests_rejected_on_disconnect(running_bridge):
+    """UXP Plugin 切断時に pending requests が ConnectionError で reject される"""
+    port = int(Path(running_bridge._port_file).read_text().strip())
+
+    async def silent_plugin():
+        ws = await websockets.connect(f"ws://localhost:{port}")
+        await asyncio.sleep(0.1)
+        # コマンドを受信するが応答しないまま切断
+        await ws.close()
+
+    plugin_task = asyncio.create_task(silent_plugin())
+    await asyncio.sleep(0.15)  # Plugin接続待ち
+
+    # send_command は応答待ち中に Plugin が切断 → ConnectionError
+    with pytest.raises(PSConnectionError):
+        await running_bridge.send_command("file.list", timeout=5.0)
+
+    await plugin_task
+
+
+async def test_stale_connection_replaced(running_bridge):
+    """新しい接続が来たら古い接続がクリーンアップされる"""
+    port = int(Path(running_bridge._port_file).read_text().strip())
+
+    # 1st connection
+    ws1 = await websockets.connect(f"ws://localhost:{port}")
+    await asyncio.sleep(0.1)
+    assert running_bridge.state == ConnectionState.CONNECTED
+
+    # 2nd connection (replaces 1st)
+    ws2 = await websockets.connect(f"ws://localhost:{port}")
+    await asyncio.sleep(0.1)
+    assert running_bridge.state == ConnectionState.CONNECTED
+
+    await ws1.close()
+    await ws2.close()
+    await asyncio.sleep(0.1)
 
 
 async def test_stop_removes_port_file(tmp_path):
