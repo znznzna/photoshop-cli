@@ -115,3 +115,13 @@ export async function handleFileList(_params: DocumentParams): Promise<unknown> 
   const documents = Array.from(app.documents).map((doc: any) => serializeDocument(doc));
   return { documents };
 }
+
+type Handler = (params: Record<string, unknown>) => Promise<unknown>;
+
+export const HANDLERS: Record<string, Handler> = {
+  open: handleFileOpen as Handler,
+  close: handleFileClose as Handler,
+  save: handleFileSave as Handler,
+  info: handleFileInfo as Handler,
+  list: handleFileList as Handler,
+};
