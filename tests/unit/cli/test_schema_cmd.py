@@ -19,7 +19,7 @@ class TestSchemaGen:
         assert "params" in schema["properties"]
         params = schema["properties"]["params"]
         assert "path" in params["properties"]
-        assert params["properties"]["path"]["_cli_type"] == "argument"
+        assert params["properties"]["path"]["_cli_type"] == "option"
 
     def test_generate_file_list_schema(self):
         """file.list の schema が生成される（response 含む）"""

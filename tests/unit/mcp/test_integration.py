@@ -17,11 +17,23 @@ def mcp_server():
 
 class TestToolRegistration:
     async def test_all_tools_listed(self, mcp_server):
-        """全6ツールが登録されている"""
+        """全11ツールが登録されている（document_* 5 + file_* 5 + system_ping）"""
         async with Client(mcp_server) as client:
             tools = await client.list_tools()
             tool_names = {t.name for t in tools}
-            expected = {"file_list", "file_info", "file_open", "file_close", "file_save", "system_ping"}
+            expected = {
+                "document_list",
+                "document_info",
+                "document_open",
+                "document_close",
+                "document_save",
+                "file_list",
+                "file_info",
+                "file_open",
+                "file_close",
+                "file_save",
+                "system_ping",
+            }
             assert tool_names == expected
 
     async def test_file_info_has_doc_id_param(self, mcp_server):

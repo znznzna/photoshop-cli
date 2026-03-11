@@ -44,9 +44,21 @@ class TestCommandSchema:
 
 class TestCommandSchemas:
     def test_all_commands_have_schemas(self):
-        """全6コマンドの CommandSchema が定義されている"""
+        """全11コマンド（document.* 5 + file.* 5 + system.ping）の CommandSchema が定義されている"""
         commands = {s.command for s in COMMAND_SCHEMAS}
-        expected = {"file.list", "file.info", "file.open", "file.close", "file.save", "system.ping"}
+        expected = {
+            "document.list",
+            "document.info",
+            "document.open",
+            "document.close",
+            "document.save",
+            "file.list",
+            "file.info",
+            "file.open",
+            "file.close",
+            "file.save",
+            "system.ping",
+        }
         assert commands == expected
 
     def test_no_duplicate_commands(self):

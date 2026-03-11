@@ -67,20 +67,21 @@ class CommandSchema:
     validator: str | None = None
 
 
-COMMAND_SCHEMAS: list[CommandSchema] = [
+# document.* コマンド定義（正規名）
+_DOCUMENT_SCHEMAS: list[CommandSchema] = [
     CommandSchema(
-        command="file.list",
+        command="document.list",
         description="List all open Photoshop documents.",
     ),
     CommandSchema(
-        command="file.info",
+        command="document.info",
         description="Get detailed information for a specific document.",
         params=[
             ParamSchema(name="doc_id", type=int, description="Document ID", sdk_name="documentId"),
         ],
     ),
     CommandSchema(
-        command="file.open",
+        command="document.open",
         description="Open a PSD file in Photoshop.",
         params=[
             ParamSchema(name="path", type=str, description="Absolute path to the PSD file"),
@@ -92,7 +93,7 @@ COMMAND_SCHEMAS: list[CommandSchema] = [
         validator="validate_file_path",
     ),
     CommandSchema(
-        command="file.close",
+        command="document.close",
         description="Close a document. Use save=true to save before closing.",
         params=[
             ParamSchema(name="doc_id", type=int, description="Document ID to close", sdk_name="documentId"),
@@ -104,7 +105,7 @@ COMMAND_SCHEMAS: list[CommandSchema] = [
         supports_dry_run=True,
     ),
     CommandSchema(
-        command="file.save",
+        command="document.save",
         description="Save a document.",
         params=[
             ParamSchema(name="doc_id", type=int, description="Document ID to save", sdk_name="documentId"),
@@ -113,6 +114,29 @@ COMMAND_SCHEMAS: list[CommandSchema] = [
         risk_level="write",
         supports_dry_run=True,
     ),
+]
+
+
+def _create_file_alias(schema: CommandSchema) -> CommandSchema:
+    """document.* スキーマから file.* エイリアスを生成する"""
+    return CommandSchema(
+        command=schema.command.replace("document.", "file."),
+        description=schema.description,
+        params=schema.params,
+        mutating=schema.mutating,
+        risk_level=schema.risk_level,
+        requires_confirm=schema.requires_confirm,
+        supports_dry_run=schema.supports_dry_run,
+        timeout=schema.timeout,
+        validator=schema.validator,
+    )
+
+
+_FILE_SCHEMAS: list[CommandSchema] = [_create_file_alias(s) for s in _DOCUMENT_SCHEMAS]
+
+COMMAND_SCHEMAS: list[CommandSchema] = [
+    *_DOCUMENT_SCHEMAS,
+    *_FILE_SCHEMAS,
     CommandSchema(
         command="system.ping",
         description="Check connection to Photoshop UXP Plugin.",

@@ -201,7 +201,7 @@ class TestRegisterAllTools:
         conn_mgr = AsyncMock()
         register_all_tools(mcp, conn_mgr)
 
-        assert len(COMMAND_SCHEMAS) == 6
+        assert len(COMMAND_SCHEMAS) == 11
 
     def test_tool_names(self):
         """ツール名が command.replace('.', '_') 形式"""

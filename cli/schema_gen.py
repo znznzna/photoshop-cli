@@ -7,32 +7,42 @@ import click
 from photoshop_sdk.schema import DocumentInfo
 
 # コマンドごとの response schema マッピング
-_RESPONSE_SCHEMAS: dict[str, Any] = {
-    "file.list": {
+_DOCUMENT_RESPONSE_SCHEMAS: dict[str, Any] = {
+    "document.list": {
         "type": "array",
         "items": DocumentInfo.model_json_schema(),
         "description": "List of open documents",
     },
-    "file.info": DocumentInfo.model_json_schema(),
-    "file.open": {
+    "document.info": DocumentInfo.model_json_schema(),
+    "document.open": {
         "type": "object",
         "properties": {
             "documentId": {"type": "integer", "description": "Opened document ID"},
             "name": {"type": "string", "description": "Document name"},
         },
     },
-    "file.close": {
+    "document.close": {
         "type": "object",
         "properties": {
             "closed": {"type": "boolean"},
         },
     },
-    "file.save": {
+    "document.save": {
         "type": "object",
         "properties": {
             "saved": {"type": "boolean"},
         },
     },
+}
+
+# file.* エイリアスの response schema を自動生成
+_FILE_RESPONSE_SCHEMAS: dict[str, Any] = {
+    k.replace("document.", "file."): v for k, v in _DOCUMENT_RESPONSE_SCHEMAS.items()
+}
+
+_RESPONSE_SCHEMAS: dict[str, Any] = {
+    **_DOCUMENT_RESPONSE_SCHEMAS,
+    **_FILE_RESPONSE_SCHEMAS,
     "system.ping": {
         "type": "object",
         "properties": {
