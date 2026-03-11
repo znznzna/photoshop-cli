@@ -5,6 +5,12 @@
  * 固定ポート 49152 を使用（ポートファイル不要）。
  *
  * 自動再接続: 切断時に指数バックオフで再接続を試みる。
+ *
+ * FDリーク対策:
+ * - イベントリスナーをメンバ変数に保持し、同じ参照で add/remove
+ * - _cleanupSocket() でリスナー除去・close・null 化を一括実行
+ * - isConnecting ガードで重複接続を防止
+ * - ハンドラ内で const ws = this.ws ガードにより stale socket イベントを無視
  */
 
 export type CommandHandler = (command: string, params: Record<string, unknown>) => Promise<unknown>;
@@ -30,45 +36,106 @@ export class WSClient {
   private ws: WebSocket | null = null;
   private handler: CommandHandler | null = null;
   private isShuttingDown = false;
+  private isConnecting = false;
   private reconnectAttempts = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // イベントリスナーをメンバ変数に保持（同じ参照で add/remove するため）
+  private _onOpen: (() => void) | null = null;
+  private _onMessage: ((event: MessageEvent) => void) | null = null;
+  private _onClose: (() => void) | null = null;
+  private _onError: ((event: Event) => void) | null = null;
 
   setHandler(handler: CommandHandler): void {
     this.handler = handler;
   }
 
   async connect(): Promise<void> {
+    if (this.isConnecting) {
+      console.log("[WS] Already connecting, skipping duplicate attempt");
+      return;
+    }
+    this.isConnecting = true;
+
+    // 古いソケットをクリーンアップ
+    this._cleanupSocket();
+
     const uri = `ws://localhost:${DEFAULT_PORT}`;
     console.log(`[WS] Connecting to ${uri}`);
 
     return new Promise<void>((resolve, reject) => {
-      this.ws = new WebSocket(uri);
+      let settled = false;
 
-      this.ws.addEventListener("open", () => {
+      const ws = new WebSocket(uri);
+      this.ws = ws;
+
+      this._onOpen = () => {
+        if (ws !== this.ws) return; // stale socket guard
         console.log("[WS] Connected to Python SDK");
         this.reconnectAttempts = 0;
-        resolve();
-      });
+        this.isConnecting = false;
+        if (!settled) {
+          settled = true;
+          resolve();
+        }
+      };
 
-      this.ws.addEventListener("message", (event: MessageEvent) => {
+      this._onMessage = (event: MessageEvent) => {
+        if (ws !== this.ws) return; // stale socket guard
         this._handleMessage(event.data as string);
-      });
+      };
 
-      this.ws.addEventListener("close", () => {
+      this._onClose = () => {
+        if (ws !== this.ws) return; // stale socket guard
         console.log("[WS] Connection closed");
-        this.ws = null;
+        this._cleanupSocket();
+        this.isConnecting = false;
         if (!this.isShuttingDown) {
           this._scheduleReconnect();
         }
-      });
+        if (!settled) {
+          settled = true;
+          reject(new Error("WebSocket connection closed before open"));
+        }
+      };
 
-      this.ws.addEventListener("error", (event: Event) => {
+      this._onError = (event: Event) => {
+        if (ws !== this.ws) return; // stale socket guard
         console.error("[WS] WebSocket error:", event);
-        if (this.ws?.readyState !== WebSocket.OPEN) {
+        this.isConnecting = false;
+        if (!settled) {
+          settled = true;
           reject(new Error("WebSocket connection failed"));
         }
-      });
+      };
+
+      ws.addEventListener("open", this._onOpen);
+      ws.addEventListener("message", this._onMessage);
+      ws.addEventListener("close", this._onClose);
+      ws.addEventListener("error", this._onError);
     });
+  }
+
+  private _cleanupSocket(): void {
+    const ws = this.ws;
+    if (!ws) return;
+
+    // リスナーを参照で除去
+    if (this._onOpen) ws.removeEventListener("open", this._onOpen);
+    if (this._onMessage) ws.removeEventListener("message", this._onMessage);
+    if (this._onClose) ws.removeEventListener("close", this._onClose);
+    if (this._onError) ws.removeEventListener("error", this._onError);
+
+    // ソケットがまだ開いている/接続中ならクローズ
+    if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+      ws.close();
+    }
+
+    this.ws = null;
+    this._onOpen = null;
+    this._onMessage = null;
+    this._onClose = null;
+    this._onError = null;
   }
 
   private async _handleMessage(raw: string): Promise<void> {
@@ -113,6 +180,12 @@ export class WSClient {
   }
 
   private _scheduleReconnect(): void {
+    // 既存タイマーをクリアして重複防止
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+
     const delay = Math.min(
       RECONNECT_BASE_DELAY_MS * Math.pow(2, this.reconnectAttempts),
       RECONNECT_MAX_DELAY_MS
@@ -120,10 +193,12 @@ export class WSClient {
     this.reconnectAttempts++;
     console.log(`[WS] Reconnecting in ${delay / 1000}s (attempt ${this.reconnectAttempts})`);
     this.reconnectTimer = setTimeout(async () => {
+      this.reconnectTimer = null;
       try {
         await this.connect();
       } catch (e) {
-        this._scheduleReconnect();
+        // connect 内の _onClose が _scheduleReconnect を呼ぶので
+        // ここでは追加の再接続スケジュールは不要
       }
     }, delay);
   }
@@ -132,11 +207,9 @@ export class WSClient {
     this.isShuttingDown = true;
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
     }
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
+    this._cleanupSocket();
   }
 }
 
