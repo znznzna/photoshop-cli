@@ -14,10 +14,14 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+import os
+
 import websockets
 from websockets.asyncio.server import ServerConnection
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_PORT = 49152
 
 
 class ConnectionState(enum.Enum):
@@ -32,12 +36,15 @@ class ResilientWSBridge:
     def __init__(
         self,
         host: str = "localhost",
+        port: Optional[int] = None,
         port_file: Optional[str] = None,
         heartbeat_interval: float = 30.0,
     ):
         self._host = host
+        self._port = port or int(os.environ.get("PS_WS_PORT", str(DEFAULT_PORT)))
         if port_file is None:
             from .paths import get_port_file
+
             self._port_file = str(get_port_file())
         else:
             self._port_file = port_file
@@ -55,16 +62,15 @@ class ResilientWSBridge:
         return self._state
 
     async def start(self) -> None:
-        """WebSocket サーバーを起動し、ポートをファイルに書き込む"""
+        """WebSocket サーバーを固定ポートで起動する"""
         self._server = await websockets.serve(
             self._handle_connection,
             self._host,
-            0,  # ランダムポートを使用
+            self._port,
         )
         port = self._server.sockets[0].getsockname()[1]
         Path(self._port_file).write_text(str(port))
         logger.info(f"WS server listening on ws://{self._host}:{port}")
-        logger.info(f"Port written to {self._port_file}")
 
     async def _handle_connection(self, websocket: ServerConnection) -> None:
         """UXP Plugin からの接続ハンドラ"""
@@ -77,12 +83,22 @@ class ResilientWSBridge:
                 pass
             self._reject_pending_requests("Connection replaced by new client")
 
+        # 古い heartbeat タスクをキャンセル
+        if self._heartbeat_task and not self._heartbeat_task.done():
+            self._heartbeat_task.cancel()
+            try:
+                await self._heartbeat_task
+            except asyncio.CancelledError:
+                pass
+
         self._connection = websocket
         self._state = ConnectionState.CONNECTED
         logger.info("UXP Plugin connected")
 
+        heartbeat_task: Optional[asyncio.Task] = None
         if self._heartbeat_interval > 0:
-            self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
+            heartbeat_task = asyncio.create_task(self._heartbeat_loop())
+            self._heartbeat_task = heartbeat_task
 
         try:
             async for raw_message in websocket:
@@ -96,16 +112,18 @@ class ResilientWSBridge:
         except Exception as e:
             logger.error(f"Connection handler error: {e}")
         finally:
-            if self._heartbeat_task:
-                self._heartbeat_task.cancel()
+            # このハンドラのheartbeatタスクをキャンセル
+            if heartbeat_task and not heartbeat_task.done():
+                heartbeat_task.cancel()
                 try:
-                    await self._heartbeat_task
+                    await heartbeat_task
                 except asyncio.CancelledError:
                     pass
             # 古いハンドラが新しい接続を破壊しないようガード
             if self._connection is websocket:
                 self._connection = None
                 self._state = ConnectionState.WAITING_FOR_PLUGIN
+                self._heartbeat_task = None
                 self._reject_pending_requests("UXP Plugin disconnected")
                 logger.info("UXP Plugin connection closed, waiting for reconnection")
 
@@ -130,6 +148,22 @@ class ResilientWSBridge:
         else:
             logger.warning(f"Received message with unknown id: {request_id}")
 
+    async def wait_for_connection(self, timeout: float = 10.0) -> None:
+        """UXP Plugin が接続するまで待機する"""
+        if self._state == ConnectionState.CONNECTED and self._connection is not None:
+            return
+        logger.info(f"Waiting for UXP Plugin connection (timeout={timeout}s)...")
+        deadline = asyncio.get_event_loop().time() + timeout
+        while asyncio.get_event_loop().time() < deadline:
+            if self._state == ConnectionState.CONNECTED and self._connection is not None:
+                return
+            await asyncio.sleep(0.2)
+        from .exceptions import ConnectionError as PSConnectionError
+
+        raise PSConnectionError(
+            "UXP Plugin is not connected. Please ensure Photoshop is running with the plugin active."
+        )
+
     async def send_command(
         self,
         command: str,
@@ -138,10 +172,7 @@ class ResilientWSBridge:
     ) -> Dict[str, Any]:
         """UXP Plugin にコマンドを送信し、応答を待つ"""
         if self._state != ConnectionState.CONNECTED or self._connection is None:
-            from .exceptions import ConnectionError as PSConnectionError
-            raise PSConnectionError(
-                "UXP Plugin is not connected. Please ensure Photoshop is running with the plugin active."
-            )
+            await self.wait_for_connection()
 
         request_id = str(uuid.uuid4())
         request = {
@@ -159,6 +190,7 @@ class ResilientWSBridge:
         except asyncio.TimeoutError:
             self._pending_requests.pop(request_id, None)
             from .exceptions import TimeoutError as PSTimeoutError
+
             raise PSTimeoutError(f"Command '{command}' timed out after {timeout}s")
         except Exception:
             self._pending_requests.pop(request_id, None)
@@ -169,6 +201,7 @@ class ResilientWSBridge:
             error_code = error.get("code", "UNKNOWN")
             error_message = error.get("message", "Unknown error")
             from .exceptions import ERROR_CODE_MAP, PhotoshopSDKError
+
             exception_class = ERROR_CODE_MAP.get(error_code, PhotoshopSDKError)
             raise exception_class(error_message, code=error_code, details=error)
 

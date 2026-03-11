@@ -1,10 +1,8 @@
 /**
  * index.ts - UXP Plugin エントリポイント
- *
- * 1. WS クライアントを起動してポートファイルからサーバーアドレスを取得
- * 2. dispatcher を WS クライアントのハンドラとして登録
- * 3. Photoshop UXP Panel の entrypoint を export
  */
+
+const { entrypoints } = require("uxp");
 
 import { wsClient } from "./ws_client";
 import { dispatch } from "./dispatcher";
@@ -15,22 +13,19 @@ wsClient.setHandler(async (command, params) => {
   return dispatch(command, params);
 });
 
-// UXP entrypoint
-module.exports = {
+entrypoints.setup({
   panels: {
     mainPanel: {
-      show({ node }: { node: Element }) {
-        // Panel UI（最小限）
-        node.innerHTML = `
+      create(rootNode: any) {
+        rootNode.innerHTML = `
           <sp-body>
             <h3>Photoshop CLI Bridge</h3>
             <p id="status">Starting...</p>
           </sp-body>
         `;
 
-        const statusEl = node.querySelector("#status");
+        const statusEl = rootNode.querySelector("#status");
 
-        // WS 接続開始
         wsClient
           .connect()
           .then(() => {
@@ -41,6 +36,7 @@ module.exports = {
             if (statusEl) statusEl.textContent = `Connection failed: ${e.message}`;
           });
       },
+      show() {},
     },
   },
-};
+});

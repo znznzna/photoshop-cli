@@ -2,13 +2,10 @@
  * ws_client.ts - WebSocket クライアント
  *
  * Python SDK (ResilientWSBridge) が起動する WS サーバーに接続する。
- * ポートは /tmp/photoshop_ws_port.txt から読み込む。
+ * 固定ポート 49152 を使用（ポートファイル不要）。
  *
  * 自動再接続: 切断時に指数バックオフで再接続を試みる。
  */
-
-// UXP の fs モジュール（ポートファイル読み込み用）
-const fs = require("uxp").storage.localFileSystem;
 
 export type CommandHandler = (command: string, params: Record<string, unknown>) => Promise<unknown>;
 
@@ -25,15 +22,15 @@ interface ResponseMessage {
   error?: { code: string; message: string };
 }
 
-const PORT_FILE_PATH = "/tmp/photoshop_ws_port.txt";
-const MAX_RECONNECT_ATTEMPTS = 10;
-const RECONNECT_BASE_DELAY_MS = 1000;
+const DEFAULT_PORT = 49152;
+const RECONNECT_BASE_DELAY_MS = 2000;
+const RECONNECT_MAX_DELAY_MS = 60000;
 
 export class WSClient {
   private ws: WebSocket | null = null;
   private handler: CommandHandler | null = null;
-  private reconnectAttempts = 0;
   private isShuttingDown = false;
+  private reconnectAttempts = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   setHandler(handler: CommandHandler): void {
@@ -41,43 +38,37 @@ export class WSClient {
   }
 
   async connect(): Promise<void> {
-    const port = await this._readPort();
-    const uri = `ws://localhost:${port}`;
+    const uri = `ws://localhost:${DEFAULT_PORT}`;
     console.log(`[WS] Connecting to ${uri}`);
 
-    this.ws = new WebSocket(uri);
+    return new Promise<void>((resolve, reject) => {
+      this.ws = new WebSocket(uri);
 
-    this.ws.addEventListener("open", () => {
-      console.log("[WS] Connected to Python SDK");
-      this.reconnectAttempts = 0;
+      this.ws.addEventListener("open", () => {
+        console.log("[WS] Connected to Python SDK");
+        this.reconnectAttempts = 0;
+        resolve();
+      });
+
+      this.ws.addEventListener("message", (event: MessageEvent) => {
+        this._handleMessage(event.data as string);
+      });
+
+      this.ws.addEventListener("close", () => {
+        console.log("[WS] Connection closed");
+        this.ws = null;
+        if (!this.isShuttingDown) {
+          this._scheduleReconnect();
+        }
+      });
+
+      this.ws.addEventListener("error", (event: Event) => {
+        console.error("[WS] WebSocket error:", event);
+        if (this.ws?.readyState !== WebSocket.OPEN) {
+          reject(new Error("WebSocket connection failed"));
+        }
+      });
     });
-
-    this.ws.addEventListener("message", (event: MessageEvent) => {
-      this._handleMessage(event.data as string);
-    });
-
-    this.ws.addEventListener("close", () => {
-      console.log("[WS] Connection closed");
-      this.ws = null;
-      if (!this.isShuttingDown) {
-        this._scheduleReconnect();
-      }
-    });
-
-    this.ws.addEventListener("error", (event: Event) => {
-      console.error("[WS] WebSocket error:", event);
-    });
-  }
-
-  private async _readPort(): Promise<number> {
-    try {
-      // UXP の file API でポートファイルを読む
-      const entry = await fs.getEntryWithUrl(`file://${PORT_FILE_PATH}`);
-      const content = await entry.read({ format: "utf8" });
-      return parseInt((content as string).trim(), 10);
-    } catch (e) {
-      throw new Error(`Failed to read port file at ${PORT_FILE_PATH}: ${e}`);
-    }
   }
 
   private async _handleMessage(raw: string): Promise<void> {
@@ -122,18 +113,16 @@ export class WSClient {
   }
 
   private _scheduleReconnect(): void {
-    if (this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-      console.error("[WS] Max reconnect attempts reached");
-      return;
-    }
-    const delay = RECONNECT_BASE_DELAY_MS * Math.pow(2, this.reconnectAttempts);
-    console.log(`[WS] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1})`);
+    const delay = Math.min(
+      RECONNECT_BASE_DELAY_MS * Math.pow(2, this.reconnectAttempts),
+      RECONNECT_MAX_DELAY_MS
+    );
     this.reconnectAttempts++;
+    console.log(`[WS] Reconnecting in ${delay / 1000}s (attempt ${this.reconnectAttempts})`);
     this.reconnectTimer = setTimeout(async () => {
       try {
         await this.connect();
       } catch (e) {
-        console.error("[WS] Reconnect failed:", e);
         this._scheduleReconnect();
       }
     }, delay);

@@ -2,6 +2,7 @@
   "id": "com.photoshop-cli.uxp-bridge",
   "name": "Photoshop CLI Bridge",
   "version": "1.0.0",
+  "manifestVersion": 5,
   "main": "dist/index.js",
   "host": [
     {
@@ -25,6 +26,6 @@
     "network": {
       "domains": ["ws://localhost"]
     },
-    "localFileSystem": "request"
+    "localFileSystem": "fullAccess"
   }
 }

@@ -2,10 +2,13 @@
  * file.ts - Photoshop ファイル操作ハンドラ
  *
  * コマンド: file.open, file.close, file.save, file.info, file.list
+ * ドキュメント変更系操作は executeAsModal で囲む。
  */
 
 const photoshop = require("photoshop");
 const app = photoshop.app;
+const { executeAsModal } = photoshop.core;
+const fs = require("uxp").storage.localFileSystem;
 
 interface DocumentParams {
   documentId?: number;
@@ -26,6 +29,16 @@ function serializeDocument(doc: any): Record<string, unknown> {
   };
 }
 
+function findDocument(documentId: number): any {
+  const doc = app.documents.find((d: any) => d.id === documentId);
+  if (!doc) {
+    const err = new Error(`Document with ID '${documentId}' not found`);
+    (err as any).code = "DOCUMENT_NOT_FOUND";
+    throw err;
+  }
+  return doc;
+}
+
 export async function handleFileOpen(params: DocumentParams): Promise<unknown> {
   const { path } = params;
   if (!path) {
@@ -34,7 +47,11 @@ export async function handleFileOpen(params: DocumentParams): Promise<unknown> {
     throw err;
   }
 
-  const doc = await app.open(path);
+  const entry = await fs.getEntryWithUrl("file://" + path);
+  const doc = await executeAsModal(
+    async () => app.open(entry),
+    { commandName: "Open File" }
+  );
   return serializeDocument(doc);
 }
 
@@ -46,17 +63,21 @@ export async function handleFileClose(params: DocumentParams): Promise<unknown> 
     throw err;
   }
 
-  const doc = app.documents.find((d: any) => d.id === documentId);
-  if (!doc) {
-    const err = new Error(`Document with ID '${documentId}' not found`);
-    (err as any).code = "DOCUMENT_NOT_FOUND";
-    throw err;
-  }
+  const doc = findDocument(documentId);
 
-  if (save) {
-    await doc.save();
-  }
-  await doc.close(save ? photoshop.constants.SaveOptions.SAVECHANGES : photoshop.constants.SaveOptions.DONOTSAVECHANGES);
+  await executeAsModal(
+    async () => {
+      if (save) {
+        await doc.save();
+      }
+      await doc.close(
+        save
+          ? photoshop.constants.SaveOptions.SAVECHANGES
+          : photoshop.constants.SaveOptions.DONOTSAVECHANGES
+      );
+    },
+    { commandName: "Close File" }
+  );
 
   return { closed: true, documentId };
 }
@@ -69,14 +90,12 @@ export async function handleFileSave(params: DocumentParams): Promise<unknown> {
     throw err;
   }
 
-  const doc = app.documents.find((d: any) => d.id === documentId);
-  if (!doc) {
-    const err = new Error(`Document with ID '${documentId}' not found`);
-    (err as any).code = "DOCUMENT_NOT_FOUND";
-    throw err;
-  }
+  const doc = findDocument(documentId);
 
-  await doc.save();
+  await executeAsModal(
+    async () => doc.save(),
+    { commandName: "Save File" }
+  );
   return { saved: true, documentId };
 }
 
@@ -88,13 +107,7 @@ export async function handleFileInfo(params: DocumentParams): Promise<unknown> {
     throw err;
   }
 
-  const doc = app.documents.find((d: any) => d.id === documentId);
-  if (!doc) {
-    const err = new Error(`Document with ID '${documentId}' not found`);
-    (err as any).code = "DOCUMENT_NOT_FOUND";
-    throw err;
-  }
-
+  const doc = findDocument(documentId);
   return serializeDocument(doc);
 }
 
