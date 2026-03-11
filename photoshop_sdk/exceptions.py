@@ -62,6 +62,48 @@ class HandlerError(PhotoshopSDKError):
         super().__init__(message, code=code or "HANDLER_ERROR", details=details)
 
 
+class LayerNotFoundError(PhotoshopSDKError):
+    """指定IDのレイヤーが見つからない"""
+
+    pass
+
+
+class FilterError(PhotoshopSDKError):
+    """フィルター適用エラー"""
+
+    pass
+
+
+class ChannelNotFoundError(PhotoshopSDKError):
+    """指定IDのチャンネルが見つからない"""
+
+    pass
+
+
+class SelectionError(PhotoshopSDKError):
+    """選択範囲操作エラー"""
+
+    pass
+
+
+class PathNotFoundError(PhotoshopSDKError):
+    """指定IDのパスが見つからない"""
+
+    pass
+
+
+class UnsupportedOperationError(PhotoshopSDKError):
+    """サポートされていない操作"""
+
+    pass
+
+
+class BatchPlayBlockedError(PhotoshopSDKError):
+    """batchPlay でブロックされたデスクリプタが使用された"""
+
+    pass
+
+
 # Error code mapping from UXP Plugin responses
 ERROR_CODE_MAP: Dict[str, type] = {
     "DOCUMENT_NOT_FOUND": DocumentNotFoundError,
@@ -69,4 +111,11 @@ ERROR_CODE_MAP: Dict[str, type] = {
     "TIMEOUT": TimeoutError,
     "VALIDATION_ERROR": ValidationError,
     "HANDLER_ERROR": HandlerError,
+    "LAYER_NOT_FOUND": LayerNotFoundError,
+    "FILTER_ERROR": FilterError,
+    "CHANNEL_NOT_FOUND": ChannelNotFoundError,
+    "SELECTION_ERROR": SelectionError,
+    "PATH_NOT_FOUND": PathNotFoundError,
+    "UNSUPPORTED_OPERATION": UnsupportedOperationError,
+    "BATCH_PLAY_BLOCKED": BatchPlayBlockedError,
 }
