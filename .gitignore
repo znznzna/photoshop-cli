@@ -18,3 +18,5 @@ uxp-plugin/dist/
 # Release時にユーザーが関係ないもの
 docs/plans/
 HANDOVER*.md
+.serena/
+uv.lock
