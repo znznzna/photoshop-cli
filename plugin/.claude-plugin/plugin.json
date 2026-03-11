@@ -1,0 +1,13 @@
+{
+  "name": "photoshop-cli",
+  "version": "0.1.0",
+  "description": "Control Adobe Photoshop via CLI — file operations, system control, and MCP server",
+  "author": {
+    "name": "M.Endo",
+    "email": "motoki@clockwork-sound.com"
+  },
+  "homepage": "https://github.com/znznzna/photoshop-cli",
+  "repository": "https://github.com/znznzna/photoshop-cli",
+  "license": "MIT",
+  "keywords": ["photoshop", "psd", "cli", "adobe", "mcp"]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "photoshop-cli",
+  "owner": {
+    "name": "M.Endo",
+    "email": "motoki@clockwork-sound.com"
+  },
+  "plugins": [
+    {
+      "name": "photoshop-cli",
+      "source": "./plugin",
+      "description": "Control Adobe Photoshop via CLI — file operations, system control, and MCP server",
+      "version": "0.1.0"
+    }
+  ]
+}
