@@ -119,9 +119,7 @@ class TestSyncClaudePluginJson:
         claude_dir = tmp_path / ".claude-plugin"
         claude_dir.mkdir()
         marketplace = claude_dir / "marketplace.json"
-        marketplace.write_text(json.dumps({
-            "plugins": [{"name": "photoshop-cli", "version": "0.0.0"}]
-        }, indent=2))
+        marketplace.write_text(json.dumps({"plugins": [{"name": "photoshop-cli", "version": "0.0.0"}]}, indent=2))
 
         plugin_dir = tmp_path / "plugin" / ".claude-plugin"
         plugin_dir.mkdir(parents=True)

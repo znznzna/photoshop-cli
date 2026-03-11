@@ -130,6 +130,16 @@ psd --output json schema file.open                   # Show JSON schema for file
 psd --output json schema system.ping                 # Show JSON schema for system.ping
 ```
 
+### MCP Server Management
+
+```bash
+psd mcp install                    # Install MCP server to Claude Desktop
+psd mcp install --force            # Overwrite existing entry
+psd mcp uninstall                  # Remove MCP server from config
+psd mcp status                     # Show installation status
+psd mcp test                       # Test connection via MCP
+```
+
 ### Global Options
 
 | Option | Short | Description |

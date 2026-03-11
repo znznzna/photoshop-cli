@@ -67,6 +67,7 @@ def sync_uxp_plugin_json(version: str) -> bool:
 
 
 def sync_claude_plugin_json(version: str) -> bool:
+    """.claude-plugin/marketplace.json と plugin/.claude-plugin/plugin.json の version を同期。"""
     paths = [
         ROOT / ".claude-plugin" / "marketplace.json",
         ROOT / "plugin" / ".claude-plugin" / "plugin.json",

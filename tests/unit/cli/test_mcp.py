@@ -26,11 +26,7 @@ class TestMcpInstall:
 
     def test_install_does_not_overwrite_without_force(self, tmp_path):
         config_path = tmp_path / "claude_desktop_config.json"
-        config_path.write_text(json.dumps({
-            "mcpServers": {
-                "photoshop-cli": {"command": "old-command", "args": []}
-            }
-        }))
+        config_path.write_text(json.dumps({"mcpServers": {"photoshop-cli": {"command": "old-command", "args": []}}}))
         runner = CliRunner()
 
         with patch("cli.commands.mcp._get_claude_config_path", return_value=config_path):
@@ -43,11 +39,7 @@ class TestMcpInstall:
 
     def test_install_overwrites_with_force(self, tmp_path):
         config_path = tmp_path / "claude_desktop_config.json"
-        config_path.write_text(json.dumps({
-            "mcpServers": {
-                "photoshop-cli": {"command": "old-command", "args": []}
-            }
-        }))
+        config_path.write_text(json.dumps({"mcpServers": {"photoshop-cli": {"command": "old-command", "args": []}}}))
         runner = CliRunner()
 
         with patch("cli.commands.mcp._get_claude_config_path", return_value=config_path):
@@ -60,11 +52,7 @@ class TestMcpInstall:
 
     def test_install_preserves_other_servers(self, tmp_path):
         config_path = tmp_path / "claude_desktop_config.json"
-        config_path.write_text(json.dumps({
-            "mcpServers": {
-                "lightroom-cli": {"command": "lr-mcp", "args": []}
-            }
-        }))
+        config_path.write_text(json.dumps({"mcpServers": {"lightroom-cli": {"command": "lr-mcp", "args": []}}}))
         runner = CliRunner()
 
         with patch("cli.commands.mcp._get_claude_config_path", return_value=config_path):
@@ -79,11 +67,7 @@ class TestMcpInstall:
 class TestMcpUninstall:
     def test_uninstall_removes_entry(self, tmp_path):
         config_path = tmp_path / "claude_desktop_config.json"
-        config_path.write_text(json.dumps({
-            "mcpServers": {
-                "photoshop-cli": {"command": "psd-mcp", "args": []}
-            }
-        }))
+        config_path.write_text(json.dumps({"mcpServers": {"photoshop-cli": {"command": "psd-mcp", "args": []}}}))
         runner = CliRunner()
 
         with patch("cli.commands.mcp._get_claude_config_path", return_value=config_path):
@@ -109,11 +93,9 @@ class TestMcpUninstall:
 class TestMcpStatus:
     def test_status_when_installed(self, tmp_path):
         config_path = tmp_path / "claude_desktop_config.json"
-        config_path.write_text(json.dumps({
-            "mcpServers": {
-                "photoshop-cli": {"command": "/usr/local/bin/psd-mcp", "args": []}
-            }
-        }))
+        config_path.write_text(
+            json.dumps({"mcpServers": {"photoshop-cli": {"command": "/usr/local/bin/psd-mcp", "args": []}}})
+        )
         runner = CliRunner()
 
         with patch("cli.commands.mcp._get_claude_config_path", return_value=config_path):
@@ -148,11 +130,15 @@ class TestMcpTest:
         async def mock_ping(self):
             return {"status": "ok"}
 
-        MockClient = type("MockClient", (), {
-            "__aenter__": mock_aenter,
-            "__aexit__": mock_aexit,
-            "ping": mock_ping,
-        })
+        MockClient = type(
+            "MockClient",
+            (),
+            {
+                "__aenter__": mock_aenter,
+                "__aexit__": mock_aexit,
+                "ping": mock_ping,
+            },
+        )
         mock_client = MockClient()
 
         with patch("cli.commands.mcp._create_test_client", return_value=mock_client):

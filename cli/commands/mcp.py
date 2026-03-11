@@ -2,12 +2,22 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import shutil
 import sys
 from pathlib import Path
 
 import click
+
+
+def _run_async(coro):
+    """asyncio コルーチンを同期的に実行する。"""
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
 
 
 def _resolve_psd_mcp_command() -> str:
@@ -123,15 +133,20 @@ def status():
         click.echo("Status: Not installed")
         click.echo("Run 'psd mcp install' to set up.")
 
-    click.echo("fastmcp: Available")
+    try:
+        import fastmcp
+
+        click.echo(f"fastmcp: {fastmcp.__version__}")
+    except ImportError:
+        click.echo("fastmcp: Not installed")
 
 
 @mcp.command()
-def test():
+@click.pass_context
+def test(ctx):
     """Test MCP server by connecting to Photoshop and sending a ping."""
     click.echo("Testing MCP server connection...")
     try:
-        import asyncio
 
         async def _test():
             client = _create_test_client()
@@ -142,7 +157,7 @@ def test():
                 click.echo(f"Ping response: {result}")
                 click.echo("MCP server test: OK")
 
-        asyncio.run(_test())
+        _run_async(_test())
     except Exception as e:
         click.echo(f"Test failed: {e}", err=True)
-        raise SystemExit(1)
+        ctx.exit(1)
