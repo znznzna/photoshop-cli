@@ -62,9 +62,11 @@ def cli(ctx, output, fields, verbose, timeout, dry_run):
 
 # コマンドグループの登録
 from cli.commands.file import file_cmd  # noqa: E402
+from cli.commands.mcp import mcp  # noqa: E402
 from cli.commands.schema import schema_cmd  # noqa: E402
 from cli.commands.system import system_cmd  # noqa: E402
 
 cli.add_command(file_cmd)
+cli.add_command(mcp)
 cli.add_command(schema_cmd)
 cli.add_command(system_cmd)
