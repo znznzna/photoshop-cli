@@ -17,11 +17,13 @@ class PhotoshopSDKError(Exception):
 
 class ConnectionError(PhotoshopSDKError):
     """WebSocket connection errors"""
+
     pass
 
 
 class TimeoutError(PhotoshopSDKError):
     """Command timeout errors"""
+
     pass
 
 
@@ -44,6 +46,7 @@ class DocumentNotFoundError(PhotoshopSDKError):
 
 class ValidationError(PhotoshopSDKError):
     """Invalid parameter errors"""
+
     pass
 
 

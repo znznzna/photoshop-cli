@@ -9,6 +9,7 @@ def resolve_output_format(output: str | None) -> str:
         return output
     # TTY でなければ json、TTY なら text
     import sys
+
     return "json" if not sys.stdout.isatty() else "text"
 
 
@@ -40,8 +41,12 @@ def resolve_timeout(timeout: float | None) -> float:
     default=None,
     help="Default command timeout in seconds",
 )
-@click.option("--dry-run", is_flag=True, default=False,
-              help="Validate inputs and show the command that would be sent, without executing")
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Validate inputs and show the command that would be sent, without executing",
+)
 @click.pass_context
 def cli(ctx, output, fields, verbose, timeout, dry_run):
     """Adobe Photoshop CLI - control Photoshop from the command line."""

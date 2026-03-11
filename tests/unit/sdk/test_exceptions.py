@@ -1,4 +1,3 @@
-
 from photoshop_sdk.exceptions import (
     ERROR_CODE_MAP,
     ConnectionError as PSConnectionError,

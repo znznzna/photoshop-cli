@@ -111,6 +111,7 @@ def generate_command_schema(cmd_path: str, cli_group: click.Group) -> dict[str, 
         if param.default is not None and param.default != ():
             try:
                 import json as _json
+
                 _json.dumps(param.default)
                 param_info["default"] = param.default
             except (TypeError, ValueError):

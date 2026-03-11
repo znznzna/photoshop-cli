@@ -37,9 +37,7 @@ def test_format_error_text():
 
 
 def test_format_error_json():
-    result = OutputFormatter.format_error(
-        "Connection failed", mode="json", code="CONNECTION_ERROR"
-    )
+    result = OutputFormatter.format_error("Connection failed", mode="json", code="CONNECTION_ERROR")
     parsed = json.loads(result)
     assert parsed["error"]["code"] == "CONNECTION_ERROR"
     assert parsed["error"]["message"] == "Connection failed"

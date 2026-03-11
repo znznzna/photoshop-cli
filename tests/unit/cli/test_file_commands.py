@@ -92,9 +92,7 @@ def test_file_open_success(tmp_path):
     f = tmp_path / "new.psd"
     f.write_text("dummy")
     runner = CliRunner()
-    mock_client = make_mock_client({
-        "file_open": {"documentId": 3, "name": "new.psd"}
-    })
+    mock_client = make_mock_client({"file_open": {"documentId": 3, "name": "new.psd"}})
 
     with patch("cli.commands.file.PhotoshopClient", return_value=mock_client):
         result = runner.invoke(cli, ["--output", "json", "file", "open", str(f)])
@@ -133,9 +131,11 @@ def test_file_save_success():
 def test_handle_validation_error():
     """ValidationError が exit code 4 で処理される"""
     runner = CliRunner()
-    mock_client = make_mock_client({
-        "file_list": PSValidationError("Invalid input", code="VALIDATION_ERROR"),
-    })
+    mock_client = make_mock_client(
+        {
+            "file_list": PSValidationError("Invalid input", code="VALIDATION_ERROR"),
+        }
+    )
 
     with patch("cli.commands.file.PhotoshopClient", return_value=mock_client):
         result = runner.invoke(cli, ["--output", "json", "file", "list"])
@@ -171,9 +171,7 @@ def test_file_open_with_valid_file(tmp_path):
     f = tmp_path / "valid.psd"
     f.write_text("dummy")
     runner = CliRunner()
-    mock_client = make_mock_client({
-        "file_open": {"documentId": 3, "name": "valid.psd"}
-    })
+    mock_client = make_mock_client({"file_open": {"documentId": 3, "name": "valid.psd"}})
 
     with patch("cli.commands.file.PhotoshopClient", return_value=mock_client):
         result = runner.invoke(cli, ["--output", "json", "file", "open", str(f)])
