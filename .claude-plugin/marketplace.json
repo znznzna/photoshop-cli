@@ -9,7 +9,7 @@
       "name": "photoshop-cli",
       "source": "./plugin",
       "description": "Control Adobe Photoshop via CLI — file operations, system control, and MCP server",
-      "version": "0.1.0"
+      "version": "1.0.0"
     }
   ]
 }

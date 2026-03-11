@@ -17,7 +17,7 @@ def resolve_timeout(timeout: float | None) -> float:
 
 
 @click.group()
-@click.version_option(version="0.1.0", prog_name="psd")
+@click.version_option(version="1.0.0", prog_name="psd")
 @click.option(
     "--output",
     "-o",
